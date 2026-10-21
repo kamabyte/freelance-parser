@@ -1,0 +1,16 @@
+# Secrets never go into the image: env vars are set in Dokploy.
+.env
+.env.*
+!.env.example
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+data
+.git
+.github
+.claude
+.idea
+.DS_Store
+deploy
+DEPLOY.md

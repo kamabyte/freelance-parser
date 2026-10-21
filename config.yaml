@@ -1,0 +1,71 @@
+# fl.ru categories to watch (numeric RSS ids). 5 = Программирование, 2 = Сайты.
+# Full id list lives in the project README.
+categories: [5, 2]
+
+# How often to poll the feeds, in seconds.
+poll_interval_seconds: 90
+
+# Minimum score (0..100) to notify.
+# TEMPORARY: 0 = send ALL projects (manual filtering). The ⭐ score still shows on each
+# alert as a hint. Set back to ~50 to re-enable stack/keyword filtering.
+score_threshold: 0
+
+# Hard reject projects whose stated budget is below this (RUB). 0 = no floor.
+budget_floor: 0
+
+# Model used to draft proposals.
+model: claude-opus-4-7
+
+# Scoring inputs — tune these freely, no code changes needed.
+stack:
+  # Keywords matched (case-insensitive, on word boundaries) against
+  # title + description + category. Use stems, e.g. "интеграц" → интеграция/интеграции.
+  primary:
+    - laravel
+    - php
+    - mysql
+    - битрикс
+    - bitrix
+    - yii
+    - vue
+    - nuxt
+    - react
+    - node
+    - python
+    - docker
+    - devops
+    - api
+    - интеграц
+    - telegram
+    - телеграм
+    - бот
+    - парсинг
+
+  # Exact fl.ru subcategory labels that are a strong match (big score bonus).
+  good_subcategories:
+    - Веб-программирование
+    - Bitrix24
+    - PHP
+    - Laravel
+    - Python
+    - Fullstack
+    - Yii
+    - Vue
+    - Разработка CRM и ERP
+    - Интеграция по API
+    - Разработка Чат-ботов
+    - Парсинг данных
+    - Создание скриптов
+    - Прикладное программирование
+    - No-code
+    - n8n
+
+# Substrings that push a project down (test tasks, unpaid work, etc.).
+negative_keywords:
+  - тестовое задание
+  - тестовое
+  - бесплатн
+  - за отзыв
+  - стажир
+  - без оплаты
+  - волонт
