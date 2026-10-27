@@ -49,7 +49,9 @@ draft, to keep request volume low.
    ```
 
 6. **Open Telegram, find your bot, send `/start`.** The bot remembers your chat and
-   starts sending matches. Send `/stats` any time for a summary.
+   starts sending matches. Send `/stats` any time for a summary, including how long
+   projects took to reach the bot over the last 7 days (median / 90% / max). Each alert
+   shows the same per project: `⏱ 3 мин назад`.
 
 ## Telegram controls
 

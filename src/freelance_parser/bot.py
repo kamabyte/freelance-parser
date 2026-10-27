@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import html
 import logging
+import statistics
+from datetime import datetime, timezone
 from pathlib import Path
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -38,11 +40,23 @@ def _format_budget(budget: int | None) -> str:
     return f"{budget:,} ₽".replace(",", " ")
 
 
+def _format_lag(seconds: int) -> str:
+    minutes = seconds // 60
+    if minutes < 1:
+        return "<1 мин"
+    if minutes < 60:
+        return f"{minutes} мин"
+    return f"{minutes // 60} ч {minutes % 60} мин"
+
+
 def _format_project(p: Project) -> str:
+    stats = f"💰 {_format_budget(p.budget)}   |   ⭐ {p.score}"
+    if p.lag_seconds is not None:
+        stats += f"   |   ⏱ {_format_lag(p.lag_seconds)} назад"
     head = (
         f"<b>{html.escape(p.title)}</b>\n"
         f"🏷 {html.escape(p.category)}\n"
-        f"💰 {_format_budget(p.budget)}   |   ⭐ {p.score}"
+        f"{stats}"
     )
     reasons = "\n".join(f"• {html.escape(r)}" for r in p.reasons)
     link = f'<a href="{html.escape(p.link)}">Открыть проект ↗</a>'
@@ -96,12 +110,21 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     store: Store = context.application.bot_data["store"]
     c = store.counts()
-    await update.message.reply_text(
-        f"📊 Всего в базе: {c['total']}\n"
-        f"Уведомлений отправлено: {c['notified']}\n"
-        f"Откликнулся: {c['applied']}\n"
-        f"Взяли в работу: {c['won']}"
-    )
+    lines = [
+        f"📊 Всего в базе: {c['total']}",
+        f"Уведомлений отправлено: {c['notified']}",
+        f"Откликнулся: {c['applied']}",
+        f"Взяли в работу: {c['won']}",
+    ]
+    lags = store.recent_lags(days=7)
+    if lags:
+        p90 = lags[min(len(lags) - 1, int(len(lags) * 0.9))]
+        lines.append(
+            f"\n⏱ Задержка за 7 дней (проектов: {len(lags)}): "
+            f"медиана {_format_lag(int(statistics.median(lags)))}, "
+            f"90% — до {_format_lag(p90)}, максимум {_format_lag(lags[-1])}"
+        )
+    await update.message.reply_text("\n".join(lines))
 
 
 async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -153,10 +176,15 @@ async def poll_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     store: Store = context.application.bot_data["store"]
     chat_id, topic_id = _resolve_target(cfg, store)
 
+    # On an empty DB the whole feed is backlog; its age says nothing about our lag.
+    track_lag = not store.is_empty()
     projects = await fetch_all(cfg.categories)
+    now = datetime.now(timezone.utc)
     notified = 0
     for p in projects:
         p.score, p.reasons = score_project(p, cfg)
+        if track_lag and p.published_at:
+            p.lag_seconds = max(0, int((now - p.published_at).total_seconds()))
         pid = store.add_if_new(p)
         if pid is None:
             continue  # already seen
